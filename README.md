@@ -19,3 +19,4 @@ In development
 - Auto SSL
 - Installation guide
 - User-friendly
+- Highly customizable
