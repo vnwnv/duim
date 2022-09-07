@@ -7,7 +7,7 @@ Green="\\033[32m";
 Yellow="\\033[33m";
 End_color="\\033[0m";
 
-#Script_version="0.0.1";
+Script_version="0.0.1";
 Script_config_folder="/usr/local/etc/duimscript";
 Script_db="/usr/local/etc/duimscript/data.json";
 
@@ -33,24 +33,31 @@ author()
  #  Author:	Vince
  #  Website:	https://www.vincehut.top
  #  Note:	Downloader and UI
- #          Install and Mangement
- #          All in One Script$End_color"
-    echo -e "$Yellow This script need a fresh system\n DO NOT RUN ON PROCTION ENVIRONMENT!$End_color"
+ #              Install and Mangement
+ #              All in One Script"
 }
 
 check_relay()
 {
-    if [ "$EUID" != 0 ]
+    echo -e "$Green Recommend run this script in terminal multiplexer like screen and tmux"
+    echo -e "$Yellow This script need a fresh system!"
+    echo -e "$Red DO NOT RUN ON PROCTION ENVIRONMENT!"
+    echo -e "$Red USE \"sudo\" NOT USE ROOT DIRECTLY!"
+    echo -e "$Yellow I'm sure to continue(y/N)$End_color"
+    chioce_default_no
+    if [ "$EUID" -ne 0 ]
     then
-        echo "$Red Please use sudo!$End_color"
+        echo -e "$Red Please use sudo!$End_color"
         exit 1
     fi
-    if [ "$LOGNAME" = "root" ]
+    if [[ $EUID = "$UID" && "$SUDO_USER" = "" ]]
     then
-        echo "$Red You shouldn't use root directly!$End_color"
+        echo -e "$Red You shouldn't use root directly!$End_color"
         exit 1
     fi
-    echo -e "$Green Preparing..."
+    echo -e "$Green Account check passed!$End_color"
+    echo -e "$Green Check and install relay$End_color"
+    apt update
     if ! (command -v jq &> /dev/null);
     then
         apt install -y jq;
@@ -77,7 +84,7 @@ check_relay()
         mkdir $Script_config_folder
         touch $Script_db
     fi
-    if ! (command -v jq &> /dev/null);
+    if ! (command -v acme.sh jq &> /dev/null);
     then
         echo "SSL needs ACME.sh, install it? (Y/n)"
         read -r answer
@@ -107,31 +114,42 @@ set_default()
 menu()
 {
     echo -e "
-    $Yellow About shell$End_color
-    0 Update shell script
-    $Yellow Install$End_color
-    1. Install Aria2 (Nginx reverse proxy)
-    2. Install AriaNg
-    3. Install Filebrowser (Nginx reverse proxy)
-    4. Enable Nginx autoindex (Not finished)
-    --------
-    $Yellow Security$End_color
-    5. Get SSL for Aria2
-    6. Get SSL for AriaNg
-    7. Get SSL for Filebrowser
-    8. Use IP White List (Not finished)
-    --------
-    $Yellow Edit config$End_color
-    9. Edit Aria2 config
-    10. Edit Filebrowser config
-    11. Edit Nginx config
-    --------
-    $Yellow Tracker$End_color
-    12. Auto update trackers
-    --------
-    $Yellow Status$End_color
-    13. Show status info
-    "
+   ------------------------------------------------
+   |DUIM Script v$Script_version                                 |
+   |----------------------------------------------| 
+   |$Yellow About shell$End_color                                  |
+   |----------------------------------------------|
+   | 0 Update shell script                        |
+   |----------------------------------------------|
+   |$Yellow Install$End_color                                      |
+   |----------------------------------------------|
+   | 1. Install Aria2 (Nginx reverse proxy)       |
+   | 2. Install AriaNg                            |
+   | 3. Install Filebrowser (Nginx reverse proxy) |
+   | 4. Enable Nginx autoindex (Not finished)     |
+   |----------------------------------------------|
+   |$Yellow Security$End_color                                     |
+   |----------------------------------------------|
+   | 5. Get SSL for Aria2                         |
+   | 6. Get SSL for AriaNg                        |
+   | 7. Get SSL for Filebrowser                   |
+   | 8. Use IP White List (Not finished)          |
+   |----------------------------------------------|
+   |$Yellow Edit config$End_color                                  |
+   |----------------------------------------------|
+   | 9. Edit Aria2 config                         |
+   | 10. Edit Filebrowser config                  |
+   | 11. Edit Nginx config                        |
+   |----------------------------------------------|
+   |$Yellow Tracker$End_color                                      |
+   |----------------------------------------------|
+   | 12. Auto update trackers                     |
+   |----------------------------------------------|
+   |$Yellow Status$End_color                                       |
+   |----------------------------------------------|
+   | 13. Show status info                         |
+   ------------------------------------------------
+"
     read -r option
     case $option in
         0)
@@ -581,6 +599,7 @@ get_ssl_dns()
     #$2 is DNS provider
     #$3 is api account name
     #$4 is api key
+    #$5 is other info
     echo "Use DNS challenge"
 }
 
@@ -595,6 +614,12 @@ chioce_default_no()
 {
     read -r  answer
     if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
-    then echo " Exit!" && exit 0
+    then 
+        return
+    else
+        echo " Exit!" && exit 0
 	fi
 }
+
+author
+menu
