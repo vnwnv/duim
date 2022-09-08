@@ -1,11 +1,11 @@
 #!/bin/bash
-PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin:/root/.acme.sh
 export PATH
 
-Red="\\033[31m";
-Green="\\033[32m";
-Yellow="\\033[33m";
-End_color="\\033[0m";
+#Red="\\033[31m";
+#Green="\\033[32m";
+#Yellow="\\033[33m";
+#End_color="\\033[0m";
 
 Script_version="0.0.1";
 Script_config_folder="/usr/local/etc/duimscript";
@@ -22,7 +22,7 @@ Script_db="/usr/local/etc/duimscript/data.json";
 #sync syncthing/upload to OneDrive/.etc
 author()
 {
-	echo -e "$Green
+	info_g "
  #  DUIM Script Powered By:
  #   _    __ ____ _   __ ______ ______
  #  | |  / //  _// | / // ____// ____/
@@ -34,70 +34,49 @@ author()
  #  Website:	https://www.vincehut.top
  #  Note:	Downloader and UI
  #              Install and Mangement
- #              All in One Script"
+ #              All in One Script\U1F680"
 }
 
 check_relay()
 {
-    echo -e "$Green Recommend run this script in terminal multiplexer like screen and tmux"
-    echo -e "$Yellow This script need a fresh system!"
-    echo -e "$Red DO NOT RUN ON PROCTION ENVIRONMENT!"
-    echo -e "$Red USE \"sudo\" NOT USE ROOT DIRECTLY!"
-    echo -e "$Yellow I'm sure to continue(y/N)$End_color"
+    info_g "Recommend run this script in terminal multiplexer like screen and tmux"
+    info_ly "This script need a fresh system!"
+    info_m "DO NOT RUN ON PROCTION ENVIRONMENT!"
+    info_m "USE \"sudo\" NOT USE ROOT DIRECTLY!"
+    info_ly "I'm sure to continue(y/N)"
     chioce_default_no
     if [ "$EUID" -ne 0 ]
     then
-        echo -e "$Red Please use sudo!$End_color"
+        info_r "Please use sudo!"
         exit 1
     fi
     if [[ $EUID = "$UID" && "$SUDO_USER" = "" ]]
     then
-        echo -e "$Red You shouldn't use root directly!$End_color"
+        info_r "You shouldn't use root directly!"
         exit 1
     fi
-    echo -e "$Green Account check passed!$End_color"
-    echo -e "$Green Check and install relay$End_color"
+    info_g "Account check passed!"
+    info_g "Start check and install relay"
     apt update
-    if ! (command -v jq &> /dev/null);
-    then
-        apt install -y jq;
-    fi
-    if ! (command -v nginx &> /dev/null);
-    then
-        apt install -y curl
-    fi
-    if ! (command -v jq &> /dev/null);
-    then
-        apt install -y unzip;
-    fi
-    if ! (command -v nginx &> /dev/null);
-    then
-        echo -e "$Yellow Nginx not installed.$End_color"
-        echo "Reverse proxy need Nginx, install it? (Y/n)"
-        chioce_default_yes
-        apt install -y nginx
-        systemctl enable nginx --now
-        rm -f /etc/nginx/sites-enabled/default
-    fi
+    command_check_install jq
+    command_check_install curl
+    command_check_install unzip
+    command_check_install "nginx" "systemctl enable nginx --now && rm -f /etc/nginx/sites-enabled/default"
     if [ ! -d "$Script_config_folder" ];
     then
         mkdir $Script_config_folder
         touch $Script_db
     fi
-    if ! (command -v acme.sh jq &> /dev/null);
+    if command_check acme.sh;
     then
-        echo "SSL needs ACME.sh, install it? (Y/n)"
-        read -r answer
+        read -p "$(info_ly "SSL needs ACME.sh, install it? (Y/n)")" -r answer
         if [[ "$answer" = "n" ]] || [[ "$answer" =  "no" ]] || [[ "$answer" = "NO" ]] || [[ "$answer" = "N" ]];
         then
-            echo "ACME.sh will not install"
+            info_ly "ACME.sh will not install"
         else
-            echo "ACME.sh needs your E-mail Please input"
-            read -r SSL_email
+            read -p "$(info_g "ACME.sh needs your E-mail\n Please input ")" -r SSL_email
             curl https://get.acme.sh | sh -s email="$SSL_email"
-            # shellcheck source=/dev/null
-            source /root/.bashrc
-            acme.sh --upgrade --auto-upgrade
+            /root/.acme.sh/acme.sh --upgrade --auto-upgrade
         fi
     fi
 }
@@ -113,39 +92,39 @@ set_default()
 
 menu()
 {
-    echo -e "
+    info_normal "
    ------------------------------------------------
-   |DUIM Script v$Script_version                                 |
+   |              DUIM Script v$Script_version              |
    |----------------------------------------------| 
-   |$Yellow About shell$End_color                                  |
+   | About shell                                  |
    |----------------------------------------------|
    | 0 Update shell script                        |
    |----------------------------------------------|
-   |$Yellow Install$End_color                                      |
+   | Install                                      |
    |----------------------------------------------|
    | 1. Install Aria2 (Nginx reverse proxy)       |
    | 2. Install AriaNg                            |
    | 3. Install Filebrowser (Nginx reverse proxy) |
    | 4. Enable Nginx autoindex (Not finished)     |
    |----------------------------------------------|
-   |$Yellow Security$End_color                                     |
+   | Security                                     |
    |----------------------------------------------|
    | 5. Get SSL for Aria2                         |
    | 6. Get SSL for AriaNg                        |
    | 7. Get SSL for Filebrowser                   |
    | 8. Use IP White List (Not finished)          |
    |----------------------------------------------|
-   |$Yellow Edit config$End_color                                  |
+   | Edit config                                  |
    |----------------------------------------------|
    | 9. Edit Aria2 config                         |
    | 10. Edit Filebrowser config                  |
    | 11. Edit Nginx config                        |
    |----------------------------------------------|
-   |$Yellow Tracker$End_color                                      |
+   | Tracker                                      |
    |----------------------------------------------|
    | 12. Auto update trackers                     |
    |----------------------------------------------|
-   |$Yellow Status$End_color                                       |
+   | Status                                       |
    |----------------------------------------------|
    | 13. Show status info                         |
    ------------------------------------------------
@@ -193,7 +172,7 @@ menu()
         13)
         ;;
         *)
-        echo -e "$Red invalid input!$End_color"
+        info_r "invalid input!"
     esac
 }
 
@@ -208,6 +187,7 @@ menu_extend_9()
     3. Edit Aria2 RPC port (Nginx port)
     4. Edit Aria2 download location
     5. Edit config manually
+    6. Back
     "
     read -r option
     case $option in
@@ -220,7 +200,7 @@ menu_extend_9()
         4)
         ;;
         *)
-        echo -e "$Red invalid input!$End_color"
+        info_r "invalid input!"
     esac
 }
 
@@ -231,6 +211,7 @@ menu_extend_10()
     2. Edit Filebrowser port (Nginx port)
     3. Delete Filebrowser database
     4. Edit config manually
+    5. Back
     "
     read -r option
     case $option in
@@ -243,7 +224,7 @@ menu_extend_10()
         4)
         ;;
         *)
-        echo -e "$Red invalid input!$End_color"
+        info_r "invalid input!"
     esac
 }
 
@@ -252,6 +233,7 @@ menu_extend_11()
     echo -e "
     1. Edit Aria2 domain
     2. Edit Filebrowser domain
+    3. Back
     "
     read -r option
     case $option in
@@ -264,16 +246,16 @@ menu_extend_11()
         4)
         ;;
         *)
-        echo -e "$Red invalid input!$End_color"
+        info_r "invalid input!"
     esac
 }
 
 Install_aria2()
 {
     Aria2_nginx_config_name=aria2
-    echo "$Green Installing Aria2$End_color"
+    info_g "Installing Aria2"
     apt install -y aria2
-    echo "$Green Downloading the best Aria2 config$End_color"
+    info_g "Downloading the best Aria2 config"
     mkdir /etc/aria2
     curl -L ${Aria2_config_url} -O /etc/aria2/aria2.conf
     touch /etc/systemd/system/aria2.service
@@ -300,9 +282,7 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
     domain_detect
     if [[ "$Aria2_domain" != "null" ]] || [[ "$Filebrowser_domain" != "null" ]] || [[ "$Ariang_domain" != "null" ]];
     then
-        echo "Detected domain"
-        echo "use the same domain and port? (y/N)"
-        read -r answer
+        read -p "Detected domain, use the same domain and port? (y/N)" -r answer
         if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
         then
             Aria2_domain=$(domain_choose)
@@ -407,9 +387,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
     domain_detect
     if [[ "$Aria2_domain" != "null" ]] || [[ "$Filebrowser_domain" != "null" ]] || [[ "$Ariang_domain" != "null" ]];
     then
-        echo "Detected domain"
-        echo "use the same domain and port? (y/N)"
-        read -r answer
+        read -p "Detected domain, use the same domain and port? (y/N)" -r answer
         if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
         then
             Filebrowser_domain=$(domain_choose)
@@ -484,9 +462,7 @@ install_ariang()
     domain_detect
     if [[ "$Aria2_domain" != "null" ]] || [[ "$Filebrowser_domain" != "null" ]] || [[ "$Ariang_domain" != "null" ]];
     then
-        echo "Detected domain"
-        echo "use the same domain and port? (y/N)"
-        read -r answer
+        read -p "Detected domain, use the same domain and port? (y/N)" -r answer
         if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
         then
             Ariang_domain=$(domain_choose)
@@ -603,13 +579,35 @@ get_ssl_dns()
     echo "Use DNS challenge"
 }
 
+#####################
+#      Modules      #
+#####################
+command_check()
+{
+    ! command -v "$1" &> /dev/null
+}
+command_check_install()
+{
+    #$2 is after install hook
+    if ! command -v "$1" &> /dev/null
+    then
+        printf "%b" "$3"
+        apt install "$1"
+        $2
+    fi
+}
+
 chioce_default_yes()
 {
     read -r answer
 	if [[ "$answer" = "n" ]] || [[ "$answer" =  "no" ]] || [[ "$answer" = "NO" ]] || [[ "$answer" = "N" ]];
-	then echo " Exit!" && exit 0
+	then
+        info_m " Exit!" && exit 0
+    else
+        return
 	fi
 }
+
 chioce_default_no()
 {
     read -r  answer
@@ -617,9 +615,42 @@ chioce_default_no()
     then 
         return
     else
-        echo " Exit!" && exit 0
+        info_m " Exit!" && exit 0
 	fi
 }
 
+color_print()
+{
+    normal=$(tput sgr0)
+    red=$(tput setaf 1)
+    green=$(tput setaf 2)
+    blue=$(tput setaf 4)
+    cyan=$(tput setaf 6)
+    magenta=$(tput setaf 164)
+    yellow=$(tput setaf 3)
+    lime_yellow=$(tput setaf 190)
+    powder_blue=$(tput setaf 153)
+    bright=$(tput bold)
+    blink=$(tput blink)
+    reverse=$(tput smso)
+    underline=$(tput smul)
+    info_normal() { printf "%b\n" " $*"; }
+    info_r() { printf "%b\n" "${red} $*${normal}"; }
+    info_g() { printf "%b\n" "${green} $*${normal}"; }
+    info_b() { printf "%b\n" "${blue} $*${normal}"; }
+    info_c() { printf "%b\n" "${cyan} $*${normal}"; }
+    info_m() { printf "%b\n" "${magenta} $*${normal}"; }
+    info_y() { printf "%b\n" "${yellow} $*${normal}"; }
+    info_ly() { printf "%b\n" "${lime_yellow} $*${normal}"; }
+    info_pb() { printf "%b\n" "${powder_blue} $*${normal}"; }
+    info_bright() { printf "%b\n" "${bright} $*${normal}"; }
+    info_blink() { printf "%b\n" "${blink} $*${normal}"; }
+    info_reverse() { printf "%b\n" "${reverse} $*${normal}"; }
+    info_underline() { printf "%b\n" "${underline} $*${normal}"; }
+}
+#####################
+#    Modules_END    #
+#####################
+color_print
 author
 menu
