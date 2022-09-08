@@ -22,7 +22,7 @@ Script_db="/usr/local/etc/duimscript/data.json";
 #sync syncthing/upload to OneDrive/.etc
 author()
 {
-	info_g "
+	info_c "
  #  DUIM Script Powered By:
  #   _    __ ____ _   __ ______ ______
  #  | |  / //  _// | / // ____// ____/
@@ -41,19 +41,21 @@ author()
 check_relay()
 {
     info_g "Recommend run this script in terminal multiplexer like screen and tmux"
-    info_ly "This script need a fresh system!"
-    info_m "\nDO NOT RUN ON PROCTION ENVIRONMENT!"
-    info_m "\nUSE \"sudo\" NOT USE ROOT DIRECTLY!"
+    info_ly "This script need a fresh system!\n"
+    info_m "DO NOT RUN ON PROCTION ENVIRONMENT!"
+    info_m "USE \"sudo\" NOT USE ROOT DIRECTLY!\n"
     info_ly "I'm sure to continue(y/N)"
     chioce_default_no
     if [ "$EUID" -ne 0 ]
     then
-        info_r "Please use sudo!"
+        #info_r "Please use sudo!"
+        info_r "You didn't read the information above!"
         exit 1
     fi
     if [[ $EUID = "$UID" && "$SUDO_USER" = "" ]]
     then
-        info_r "You shouldn't use root directly!"
+        #info_r "You shouldn't use root directly!"
+        info_r "You didn't read the information above!"
         exit 1
     fi
     info_g "Account check passed!\U1F389"
@@ -80,15 +82,6 @@ check_relay()
             /root/.acme.sh/acme.sh --upgrade --auto-upgrade
         fi
     fi
-}
-
-set_default()
-{
-    #TODO proxy
-    Aria2_config_url="https://github.com/P3TERX/aria2.conf/raw/master/aria2.conf"
-    AriaNg_api="https://api.github.com/repos/mayswind/AriaNg/releases/latest"
-    AriaNg_version=$(curl -L ${AriaNg_api} | jq -r .tag_name)
-    AriaNg_download_url=https://github.com/mayswind/AriaNg/releases/download/${AriaNg_version}/AriaNg-${AriaNg_version}.zip
 }
 
 menu()
@@ -200,6 +193,11 @@ menu_extend_9()
         ;;
         4)
         ;;
+        5)
+        ;;
+        6)
+        menu
+        ;;
         *)
         info_r "invalid input!"
     esac
@@ -224,6 +222,9 @@ menu_extend_10()
         ;;
         4)
         ;;
+        5)
+        menu
+        ;;
         *)
         info_r "invalid input!"
     esac
@@ -243,8 +244,7 @@ menu_extend_11()
         2)
         ;;
         3)
-        ;;
-        4)
+        menu
         ;;
         *)
         info_r "invalid input!"
@@ -253,6 +253,7 @@ menu_extend_11()
 
 Install_aria2()
 {
+    Aria2_config_url="https://raw.githubusercontent.com/P3TERX/aria2.conf/master/aria2.conf"
     Aria2_nginx_config_name=aria2
     info_g "Installing Aria2"
     apt install -y aria2
@@ -403,7 +404,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
             return
         fi
     fi
-    info_normal -e "$Yellow You need append the DNS record first!"
+    info_ly "You need append the DNS record first!"
     while true
     do
         info_normal "Input the filebrowser domain, such as download.example.com"
@@ -447,6 +448,9 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
 
 install_ariang()
 {
+    AriaNg_api="https://api.github.com/repos/mayswind/AriaNg/releases/latest"
+    AriaNg_version=$(curl -L ${AriaNg_api} | jq -r .tag_name)
+    AriaNg_download_url=https://github.com/mayswind/AriaNg/releases/download/${AriaNg_version}/AriaNg-${AriaNg_version}.zip
     Ariang_nginx_config_name=ariang
     info_normal "Installing AriaNg"
     mkdir /var/www/ariang
@@ -473,7 +477,7 @@ install_ariang()
             return
         fi
     fi
-    info_normal -e "$Yellow You need append the DNS record first!"
+    info_ly "You need append the DNS record first!"
     while true
     do
         info_normal "Input the aria2 domain, such as download.example.com"
@@ -523,7 +527,7 @@ domain_detect()
 domain_choose()
 {
     info_normal"choose one of them"
-    info_normal -e "1. Aria2:$Aria2_domain
+    info_normal "1. Aria2:$Aria2_domain
 2. Filebrowser:$Filebrowser_domain
 3. AriaNg:$Ariang_domain"
     read -r option
@@ -555,7 +559,7 @@ domain_choose()
             fi
             ;;
             *)
-            info_normal -e "$Red invalid input!"
+            info_r "invalid input!"
         esac
     done
 }
