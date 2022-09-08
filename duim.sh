@@ -34,15 +34,16 @@ author()
  #  Website:	https://www.vincehut.top
  #  Note:	Downloader and UI
  #              Install and Mangement
- #              All in One Script\U1F680"
+ #              All in One Script\U1F680
+ "
 }
 
 check_relay()
 {
     info_g "Recommend run this script in terminal multiplexer like screen and tmux"
     info_ly "This script need a fresh system!"
-    info_m "DO NOT RUN ON PROCTION ENVIRONMENT!"
-    info_m "USE \"sudo\" NOT USE ROOT DIRECTLY!"
+    info_m "\nDO NOT RUN ON PROCTION ENVIRONMENT!"
+    info_m "\nUSE \"sudo\" NOT USE ROOT DIRECTLY!"
     info_ly "I'm sure to continue(y/N)"
     chioce_default_no
     if [ "$EUID" -ne 0 ]
@@ -55,7 +56,7 @@ check_relay()
         info_r "You shouldn't use root directly!"
         exit 1
     fi
-    info_g "Account check passed!"
+    info_g "Account check passed!\U1F389"
     info_g "Start check and install relay"
     apt update
     command_check_install jq
@@ -96,35 +97,35 @@ menu()
    ------------------------------------------------
    |              DUIM Script v$Script_version              |
    |----------------------------------------------| 
-   | About shell                                  |
+   | About shell\U1F4C4                                |
    |----------------------------------------------|
    | 0 Update shell script                        |
    |----------------------------------------------|
-   | Install                                      |
+   | Install\U2728                                    |
    |----------------------------------------------|
    | 1. Install Aria2 (Nginx reverse proxy)       |
    | 2. Install AriaNg                            |
    | 3. Install Filebrowser (Nginx reverse proxy) |
    | 4. Enable Nginx autoindex (Not finished)     |
    |----------------------------------------------|
-   | Security                                     |
+   | Security\U1F512                                   |
    |----------------------------------------------|
    | 5. Get SSL for Aria2                         |
    | 6. Get SSL for AriaNg                        |
    | 7. Get SSL for Filebrowser                   |
    | 8. Use IP White List (Not finished)          |
    |----------------------------------------------|
-   | Edit config                                  |
+   | Edit config\U1F4C2                                |
    |----------------------------------------------|
    | 9. Edit Aria2 config                         |
    | 10. Edit Filebrowser config                  |
    | 11. Edit Nginx config                        |
    |----------------------------------------------|
-   | Tracker                                      |
+   | Tracker\U1F310                                    |
    |----------------------------------------------|
    | 12. Auto update trackers                     |
    |----------------------------------------------|
-   | Status                                       |
+   | Status\U1F50D                                     |
    |----------------------------------------------|
    | 13. Show status info                         |
    ------------------------------------------------
@@ -181,7 +182,7 @@ menu_extend_9()
     #TODO:
     #4. Edit Aria2 PATH (local)
     #5. Edit Aria2 PATH (Nginx)
-    echo -e "
+    info_normal "
     1. Edit Aria2 RPC secret
     2. Edit Aria2 RPC port (local port)
     3. Edit Aria2 RPC port (Nginx port)
@@ -206,7 +207,7 @@ menu_extend_9()
 
 menu_extend_10()
 {
-    echo -e "
+    info_normal "
     1. Edit Filebrowser port (local port)
     2. Edit Filebrowser port (Nginx port)
     3. Delete Filebrowser database
@@ -230,7 +231,7 @@ menu_extend_10()
 
 menu_extend_11()
 {
-    echo -e "
+    info_normal "
     1. Edit Aria2 domain
     2. Edit Filebrowser domain
     3. Back
@@ -259,7 +260,7 @@ Install_aria2()
     mkdir /etc/aria2
     curl -L ${Aria2_config_url} -O /etc/aria2/aria2.conf
     touch /etc/systemd/system/aria2.service
-    echo "[Unit]
+    info_normal "[Unit]
 Description=aria2 Daemon
 After=network.target
 
@@ -272,8 +273,8 @@ TimeoutStopSec=20
 WantedBy=default.target" >> /etc/systemd/system/aria2.service
     systemctl daemon-reload
     systemctl enable aria2 --now
-    echo "Input the nginx path, such as /jsonrpc and /auth(default: /jsonrpc)"
-    echo "With default, open the aria's jsonrpc by example.com/jsonrpc"
+    info_normal "Input the nginx path, such as /jsonrpc and /auth(default: /jsonrpc)"
+    info_normal "With default, open the aria's jsonrpc by example.com/jsonrpc"
     read -r Aria2_path
     if [ "$Aria2_path" = "" ];
     then
@@ -287,7 +288,7 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
         then
             Aria2_domain=$(domain_choose)
             Aria2_nginx_config_name=$Aria2_domain
-            echo "server {
+            info_normal "server {
     location $Aria2_path {
         proxy_pass http://localhost:6800/jsonrpc;
         proxy_redirect off;
@@ -302,24 +303,24 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
             return
         fi
     fi
-    echo -e "$Yellow You need append the DNS record first!$End_color"
+    info_ly "You need append the DNS record first!"
     while true
     do
-        echo "Input the aria2 domain, such as download.example.com"
-        echo "If you want to use ip Press Enter"
+        info_normal "Input the aria2 domain, such as download.example.com"
+        info_normal "If you want to use ip Press Enter"
         read -r Aria2_domain
         if [ "$Aria2_domain" = "" ];
         then
-            echo "domain is empty ,do you want to use ip directly?(y/N)"
-            echo "$Yellow Not recomment use this on server.$End_color"
+            info_normal "domain is empty ,do you want to use ip directly?(y/N)"
+            info_ly "Not recomment use this on server."
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 #use ip加入duim.json
                 Aria2_domain=_
 	        fi
         fi
-    echo "Your domain is: $Aria2_domain"
-    echo "Is That correct? (y/N)"
+    info_normal "Your domain is: $Aria2_domain"
+    info_normal "Is That correct? (y/N)"
     read -r answer
     if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
     Aria2_nginx_config_name=$Aria2_domain
@@ -328,11 +329,11 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
     done
     touch /etc/nginx/sites-available/"$Aria2_nginx_config_name"
     #aria2 PATH 加入 duim.json
-    echo "Input the Nginx port, such as 80, this is usefull if you use single ip"
-    echo "This port will proxy the Aria2"
+    info_normal "Input the Nginx port, such as 80, this is usefull if you use single ip"
+    info_normal "This port will proxy the Aria2"
     read -r Aria2_port
     #Aria2_port 加入 duim.json
-    echo "server {
+    info_normal "server {
     listen $Aria2_port;
     listen [::]:$Aria2_port;
     index index.html;
@@ -356,12 +357,12 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
 install_filebrowser()
 {
     Filebrowser_nginx_config_name=filebowser
-    echo "$Green Installing filebrowser$End_color"
+    info_g "Installing filebrowser"
     curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
     mkdir /usr/local/etc/filebrowser
     touch /usr/local/etc/filebrowser/config.json
     #修改root目录
-    echo '{
+    info_normal '{
     "address": "127.0.0.1",
     "port": 8081,
     "auth.method": "noauth",
@@ -370,7 +371,7 @@ install_filebrowser()
     "root": "/home/vince/aria/download"
 }' >> /usr/local/etc/filebrowser/config.json
     touch /etc/systemd/system/filebrowser.service
-    echo "[Unit]
+    info_normal "[Unit]
 Description=Filebrowser Daemon
 After=network.target
 
@@ -392,7 +393,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
         then
             Filebrowser_domain=$(domain_choose)
             Filebrowser_nginx_config_name=Filebrowser_domain
-            echo "  location / {
+            info_normal "  location / {
         proxy_pass  http://127.0.0.1:8081;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -402,23 +403,23 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
             return
         fi
     fi
-    echo -e "$Yellow You need append the DNS record first!$End_color"
+    info_normal -e "$Yellow You need append the DNS record first!"
     while true
     do
-        echo "Input the filebrowser domain, such as download.example.com"
-        echo "If you want to use ip Press Enter"
+        info_normal "Input the filebrowser domain, such as download.example.com"
+        info_normal "If you want to use ip Press Enter"
         read -r Filebrowser_domain
         if [ "$Filebrowser_domain" = "" ];
         then
-            echo "$Yellow Domain is empty, do you want to use ip directly? (Not recomment) (y/N)$End_color"
+            info_ly "Domain is empty, do you want to use ip directly? (Not recomment) (y/N)"
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 Filebrowser_domain=_
                 #use ip加入duim.json
             fi
         fi
-        echo "Your domain is: $Filebrowser_domain"
-        echo "Is That correct? (y/N)"
+        info_normal "Your domain is: $Filebrowser_domain"
+        info_normal "Is That correct? (y/N)"
         read -r answer
         if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
         then
@@ -427,11 +428,11 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
 	    fi
     done
     touch /etc/nginx/sites-available/"$Filebrowser_nginx_config_name"
-    echo "Input the Nginx port, such as 80, this is usefull if you use single ip"
-    echo "This port will proxy the Filebrowser (default 80)"
+    info_normal "Input the Nginx port, such as 80, this is usefull if you use single ip"
+    info_normal "This port will proxy the Filebrowser (default 80)"
     read -r Filebrowser_port
     #filebowser port 加入 duim.json
-    echo "server {
+    info_normal "server {
     listen $Filebrowser_port;
     listen [::]:$Filebrowser_port;
     server_name $Filebrowser_domain;
@@ -447,13 +448,13 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
 install_ariang()
 {
     Ariang_nginx_config_name=ariang
-    echo "Installing AriaNg"
+    info_normal "Installing AriaNg"
     mkdir /var/www/ariang
     curl -L "${AriaNg_download_url}" -O /var/www/ariang/
     unzip /var/www/ariang/*.zip -d /var/www/ariang/
     rm -f /var/www/ariang/*.zip
-    echo "Input the nginx path, such as /ariang and /ng(default: /ariang)"
-    echo "With default, open the ariang by example.com/ariang"
+    info_normal "Input the nginx path, such as /ariang and /ng(default: /ariang)"
+    info_normal "With default, open the ariang by example.com/ariang"
     read -r Ariang_path
     if [ "$Ariang_path" = "" ];
     then
@@ -472,16 +473,16 @@ install_ariang()
             return
         fi
     fi
-    echo -e "$Yellow You need append the DNS record first!$End_color"
+    info_normal -e "$Yellow You need append the DNS record first!"
     while true
     do
-        echo "Input the aria2 domain, such as download.example.com"
-        echo "If you want to use ip Press Enter"
+        info_normal "Input the aria2 domain, such as download.example.com"
+        info_normal "If you want to use ip Press Enter"
         read -r Aria2_domain
         if [ "$Ariang_domain" = "" ];
         then
-            echo "domain is empty ,do you want to use ip directly?(y/N)"
-            echo "$Yellow Not recomment use this on server.$End_color"
+            info_normal "domain is empty ,do you want to use ip directly?(y/N)"
+            info_ly "Not recomment use this on server."
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 #use ip加入duim.json
@@ -489,19 +490,19 @@ install_ariang()
                 break;
 	        fi
         fi
-        echo "Your domain is: $Ariang_domain"
-        echo "Is That correct? (y/N)"
+        info_normal "Your domain is: $Ariang_domain"
+        info_normal "Is That correct? (y/N)"
         read -r answer
         if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
         then break;
 	    fi
     done
     touch /etc/nginx/sites-available/"$Ariang_nginx_config_name"
-    echo "Input the Nginx port, such as 80, this is usefull if you use single ip"
-    echo "This port will proxy the Filebrowser (default 80)"
+    info_normal "Input the Nginx port, such as 80, this is usefull if you use single ip"
+    info_normal "This port will proxy the Filebrowser (default 80)"
     read -r Filebrowser_port
     #filebowser port 加入 duim.json
-    echo "server {
+    info_normal "server {
         listen 80;
         listen [::]:80;
         root /var/www/ariang;
@@ -521,8 +522,8 @@ domain_detect()
 
 domain_choose()
 {
-    echo"choose one of them"
-    echo -e "1. Aria2:$Aria2_domain
+    info_normal"choose one of them"
+    info_normal -e "1. Aria2:$Aria2_domain
 2. Filebrowser:$Filebrowser_domain
 3. AriaNg:$Ariang_domain"
     read -r option
@@ -534,7 +535,7 @@ domain_choose()
             then
                 return "$Aria2_domain"
             else
-                echo "$Yellow Aria2 domain is empty!$End_color"
+                info_ly "Aria2 domain is empty!"
             fi
             ;;
             2)
@@ -542,7 +543,7 @@ domain_choose()
             then
                 return "$Filebrowser_domain"
             else
-                echo "$Yellow Filebrowser domain is empty!$End_color"
+                info_ly "Filebrowser domain is empty!"
             fi
             ;;
             3)
@@ -550,11 +551,11 @@ domain_choose()
             then
                 return "$Ariang_domain"
             else
-                echo "$Yellow Ariang domain is empty!$End_color"
+                info_ly "Ariang domain is empty!"
             fi
             ;;
             *)
-            echo -e "$Red invalid input!$End_color"
+            info_normal -e "$Red invalid input!"
         esac
     done
 }
@@ -563,7 +564,7 @@ get_ssl_file()
 {
     #$1 is domain name
     #$2 is dir name
-    echo "Use file challenge"
+    info_g "Use file challenge"
     acme.sh --set-default-ca --server letsencrypt
     acme.sh --issue -d "$1" --nginx --keylength ec-256
     acme.sh --install-cert -d "$1" --cert-file /etc/nginx/ssl/"$2"/cert.crt --key-file /etc/nginx/ssl/"$2"/cert.key --fullchain-file /etc/nginx/ssl/"$2"/fullchain.crt --reloadcmd "service nginx force-reload"
@@ -576,7 +577,7 @@ get_ssl_dns()
     #$3 is api account name
     #$4 is api key
     #$5 is other info
-    echo "Use DNS challenge"
+    info_g "Use DNS challenge"
 }
 
 #####################
@@ -602,7 +603,7 @@ chioce_default_yes()
     read -r answer
 	if [[ "$answer" = "n" ]] || [[ "$answer" =  "no" ]] || [[ "$answer" = "NO" ]] || [[ "$answer" = "N" ]];
 	then
-        info_m " Exit!" && exit 0
+        info_m "Exit!" && exit 0
     else
         return
 	fi
@@ -615,7 +616,7 @@ chioce_default_no()
     then 
         return
     else
-        info_m " Exit!" && exit 0
+        info_m "Exit!" && exit 0
 	fi
 }
 
@@ -653,4 +654,5 @@ color_print()
 #####################
 color_print
 author
+check_relay
 menu
