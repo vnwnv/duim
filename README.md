@@ -20,3 +20,4 @@ In development
 - Installation guide
 - User-friendly
 - Highly customizable
+- Colorful UI and Emoji
