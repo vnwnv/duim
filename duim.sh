@@ -22,7 +22,7 @@ Script_db="/usr/local/etc/duimscript/data.json";
 #sync syncthing/upload to OneDrive/.etc
 author()
 {
-	info_c "
+	info_cyan "
  #  DUIM Script Powered By:
  #   _    __ ____ _   __ ______ ______
  #  | |  / //  _// | / // ____// ____/
@@ -40,26 +40,26 @@ author()
 
 check_relay()
 {
-    info_g "Recommend run this script in terminal multiplexer like screen and tmux"
-    info_ly "This script need a fresh system!\n"
-    info_m "DO NOT RUN ON PROCTION ENVIRONMENT!"
-    info_m "USE \"sudo\" NOT USE ROOT DIRECTLY!\n"
-    info_ly "I'm sure to continue(y/N)"
+    info_green "Recommend run this script in terminal multiplexer like screen and tmux"
+    info_lemon "This script need a fresh system!\n"
+    info_magenta "DO NOT RUN ON PROCTION ENVIRONMENT!"
+    info_magenta "USE \"sudo\" NOT USE ROOT DIRECTLY!\n"
+    info_lemon "I'm sure to continue(y/N)"
     chioce_default_no
     if [ "$EUID" -ne 0 ]
     then
-        #info_r "Please use sudo!"
-        info_r "You didn't read the information above!"
+        #info_red "Please use sudo!"
+        info_red "You didn't read the information above!"
         exit 1
     fi
     if [[ $EUID = "$UID" && "$SUDO_USER" = "" ]]
     then
-        #info_r "You shouldn't use root directly!"
-        info_r "You didn't read the information above!"
+        #info_red "You shouldn't use root directly!"
+        info_red "You didn't read the information above!"
         exit 1
     fi
-    info_g "Account check passed!\U1F389"
-    info_g "Start check and install relay"
+    info_green "Account check passed!\U1F389"
+    info_green "Start check and install relay"
     apt update
     command_check_install jq
     command_check_install curl
@@ -72,12 +72,12 @@ check_relay()
     fi
     if command_check acme.sh;
     then
-        read -p "$(info_ly "SSL needs ACME.sh, install it? (Y/n)")" -r answer
+        read -p "$(info_lemon "SSL needs ACME.sh, install it? (Y/n)")" -r answer
         if [[ "$answer" = "n" ]] || [[ "$answer" =  "no" ]] || [[ "$answer" = "NO" ]] || [[ "$answer" = "N" ]];
         then
-            info_ly "ACME.sh will not install"
+            info_lemon "ACME.sh will not install"
         else
-            read -p "$(info_g "ACME.sh needs your E-mail\n Please input ")" -r SSL_email
+            read -p "$(info_green "ACME.sh needs your E-mail\n Please input ")" -r SSL_email
             curl https://get.acme.sh | sh -s email="$SSL_email"
             /root/.acme.sh/acme.sh --upgrade --auto-upgrade
         fi
@@ -166,7 +166,7 @@ menu()
         13)
         ;;
         *)
-        info_r "invalid input!"
+        info_red "invalid input!"
     esac
 }
 
@@ -199,7 +199,7 @@ menu_extend_9()
         menu
         ;;
         *)
-        info_r "invalid input!"
+        info_red "invalid input!"
     esac
 }
 
@@ -226,7 +226,7 @@ menu_extend_10()
         menu
         ;;
         *)
-        info_r "invalid input!"
+        info_red "invalid input!"
     esac
 }
 
@@ -247,7 +247,7 @@ menu_extend_11()
         menu
         ;;
         *)
-        info_r "invalid input!"
+        info_red "invalid input!"
     esac
 }
 
@@ -255,9 +255,9 @@ Install_aria2()
 {
     Aria2_config_url="https://raw.githubusercontent.com/P3TERX/aria2.conf/master/aria2.conf"
     Aria2_nginx_config_name=aria2
-    info_g "Installing Aria2"
+    info_green "Installing Aria2"
     apt install -y aria2
-    info_g "Downloading the best Aria2 config"
+    info_green "Downloading the best Aria2 config"
     mkdir /etc/aria2
     curl -L ${Aria2_config_url} -O /etc/aria2/aria2.conf
     touch /etc/systemd/system/aria2.service
@@ -304,7 +304,7 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
             return
         fi
     fi
-    info_ly "You need append the DNS record first!"
+    info_lemon "You need append the DNS record first!"
     while true
     do
         info_normal "Input the aria2 domain, such as download.example.com"
@@ -313,7 +313,7 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
         if [ "$Aria2_domain" = "" ];
         then
             info_normal "domain is empty ,do you want to use ip directly?(y/N)"
-            info_ly "Not recomment use this on server."
+            info_lemon "Not recomment use this on server."
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 #use ip加入duim.json
@@ -358,7 +358,7 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
 install_filebrowser()
 {
     Filebrowser_nginx_config_name=filebowser
-    info_g "Installing filebrowser"
+    info_green "Installing filebrowser"
     curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
     mkdir /usr/local/etc/filebrowser
     touch /usr/local/etc/filebrowser/config.json
@@ -404,7 +404,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
             return
         fi
     fi
-    info_ly "You need append the DNS record first!"
+    info_lemon "You need append the DNS record first!"
     while true
     do
         info_normal "Input the filebrowser domain, such as download.example.com"
@@ -412,7 +412,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
         read -r Filebrowser_domain
         if [ "$Filebrowser_domain" = "" ];
         then
-            info_ly "Domain is empty, do you want to use ip directly? (Not recomment) (y/N)"
+            info_lemon "Domain is empty, do you want to use ip directly? (Not recomment) (y/N)"
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 Filebrowser_domain=_
@@ -477,7 +477,7 @@ install_ariang()
             return
         fi
     fi
-    info_ly "You need append the DNS record first!"
+    info_lemon "You need append the DNS record first!"
     while true
     do
         info_normal "Input the aria2 domain, such as download.example.com"
@@ -486,7 +486,7 @@ install_ariang()
         if [ "$Ariang_domain" = "" ];
         then
             info_normal "domain is empty ,do you want to use ip directly?(y/N)"
-            info_ly "Not recomment use this on server."
+            info_lemon "Not recomment use this on server."
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 #use ip加入duim.json
@@ -539,7 +539,7 @@ domain_choose()
             then
                 return "$Aria2_domain"
             else
-                info_ly "Aria2 domain is empty!"
+                info_lemon "Aria2 domain is empty!"
             fi
             ;;
             2)
@@ -547,7 +547,7 @@ domain_choose()
             then
                 return "$Filebrowser_domain"
             else
-                info_ly "Filebrowser domain is empty!"
+                info_lemon "Filebrowser domain is empty!"
             fi
             ;;
             3)
@@ -555,11 +555,11 @@ domain_choose()
             then
                 return "$Ariang_domain"
             else
-                info_ly "Ariang domain is empty!"
+                info_lemon "Ariang domain is empty!"
             fi
             ;;
             *)
-            info_r "invalid input!"
+            info_red "invalid input!"
         esac
     done
 }
@@ -568,7 +568,7 @@ get_ssl_file()
 {
     #$1 is domain name
     #$2 is dir name
-    info_g "Use file challenge"
+    info_green "Use file challenge"
     acme.sh --set-default-ca --server letsencrypt
     acme.sh --issue -d "$1" --nginx --keylength ec-256
     acme.sh --install-cert -d "$1" --cert-file /etc/nginx/ssl/"$2"/cert.crt --key-file /etc/nginx/ssl/"$2"/cert.key --fullchain-file /etc/nginx/ssl/"$2"/fullchain.crt --reloadcmd "service nginx force-reload"
@@ -581,7 +581,7 @@ get_ssl_dns()
     #$3 is api account name
     #$4 is api key
     #$5 is other info
-    info_g "Use DNS challenge"
+    info_green "Use DNS challenge"
 }
 
 #####################
@@ -607,7 +607,7 @@ chioce_default_yes()
     read -r answer
 	if [[ "$answer" = "n" ]] || [[ "$answer" =  "no" ]] || [[ "$answer" = "NO" ]] || [[ "$answer" = "N" ]];
 	then
-        info_m "Exit!" && exit 0
+        info_magenta "Exit!" && exit 0
     else
         return
 	fi
@@ -620,7 +620,7 @@ chioce_default_no()
     then 
         return
     else
-        info_m "Exit!" && exit 0
+        info_magenta "Exit!" && exit 0
 	fi
 }
 
@@ -640,14 +640,14 @@ color_print()
     reverse=$(tput smso)
     underline=$(tput smul)
     info_normal() { printf "%b\n" " $*"; }
-    info_r() { printf "%b\n" "${red} $*${normal}"; }
-    info_g() { printf "%b\n" "${green} $*${normal}"; }
-    info_b() { printf "%b\n" "${blue} $*${normal}"; }
-    info_c() { printf "%b\n" "${cyan} $*${normal}"; }
-    info_m() { printf "%b\n" "${magenta} $*${normal}"; }
-    info_y() { printf "%b\n" "${yellow} $*${normal}"; }
-    info_ly() { printf "%b\n" "${lime_yellow} $*${normal}"; }
-    info_pb() { printf "%b\n" "${powder_blue} $*${normal}"; }
+    info_red() { printf "%b\n" "${red} $*${normal}"; }
+    info_green() { printf "%b\n" "${green} $*${normal}"; }
+    info_blue() { printf "%b\n" "${blue} $*${normal}"; }
+    info_cyan() { printf "%b\n" "${cyan} $*${normal}"; }
+    info_magenta() { printf "%b\n" "${magenta} $*${normal}"; }
+    info_yellow() { printf "%b\n" "${yellow} $*${normal}"; }
+    info_lemon() { printf "%b\n" "${lime_yellow} $*${normal}"; }
+    info_lightblue() { printf "%b\n" "${powder_blue} $*${normal}"; }
     info_bright() { printf "%b\n" "${bright} $*${normal}"; }
     info_blink() { printf "%b\n" "${blink} $*${normal}"; }
     info_reverse() { printf "%b\n" "${reverse} $*${normal}"; }
