@@ -22,7 +22,7 @@ Script_db="/usr/local/etc/duimscript/data.json";
 #sync syncthing/upload to OneDrive/.etc
 author()
 {
-	info_cyan "
+    info_cyan "
  #  DUIM Script Powered By:
  #   _    __ ____ _   __ ______ ______
  #  | |  / //  _// | / // ____// ____/
@@ -59,12 +59,10 @@ check_relay()
         exit 1
     fi
     info_green "Account check passed!\U1F389"
-    info_green "Start check and install relay"
+    info_green "Start check relay"
     apt update
-    command_check_install jq
-    command_check_install curl
-    command_check_install unzip
-    command_check_install "nginx" "systemctl enable nginx --now && rm -f /etc/nginx/sites-enabled/default"
+    command_check jq curl unzip nginx
+    rm -f /etc/nginx/sites-enabled/default
     if [ ! -d "$Script_config_folder" ];
     then
         mkdir $Script_config_folder
@@ -86,9 +84,10 @@ check_relay()
 
 menu()
 {
+    info_lightblue "Alpha v$Script_version"
     info_normal "
    ------------------------------------------------
-   |              DUIM Script v$Script_version              |
+   |                 DUIM Script                  |
    |----------------------------------------------| 
    | About shell\U1F4C4                                |
    |----------------------------------------------|
@@ -99,7 +98,7 @@ menu()
    | 1. Install Aria2 (Nginx reverse proxy)       |
    | 2. Install AriaNg                            |
    | 3. Install Filebrowser (Nginx reverse proxy) |
-   | 4. Enable Nginx autoindex (Not finished)     |
+   | 4. Enable Nginx autoindex (Same Domain)      |
    |----------------------------------------------|
    | Security\U1F512                                   |
    |----------------------------------------------|
@@ -260,18 +259,8 @@ Install_aria2()
     info_green "Downloading the best Aria2 config"
     mkdir /etc/aria2
     curl -L ${Aria2_config_url} -O /etc/aria2/aria2.conf
-    touch /etc/systemd/system/aria2.service
-    info_normal "[Unit]
-Description=aria2 Daemon
-After=network.target
-
-[Service]
-Type=forking
-ExecStart=/usr/bin/aria2c --conf-path=/etc/aria2.conf -D
-TimeoutStopSec=20
-
-[Install]
-WantedBy=default.target" >> /etc/systemd/system/aria2.service
+    touch /etc/systemd/system/aria2.service\
+    gen_daemon_service "aria2" "/usr/bin/aria2c --conf-path=/etc/aria2.conf -D"
     systemctl daemon-reload
     systemctl enable aria2 --now
     info_normal "Input the nginx path, such as /jsonrpc and /auth(default: /jsonrpc)"
@@ -281,29 +270,6 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
     then
         Aria2_path=/jsonrpc
     fi
-    domain_detect
-    if [[ "$Aria2_domain" != "null" ]] || [[ "$Filebrowser_domain" != "null" ]] || [[ "$Ariang_domain" != "null" ]];
-    then
-        read -p "Detected domain, use the same domain and port? (y/N)" -r answer
-        if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
-        then
-            Aria2_domain=$(domain_choose)
-            Aria2_nginx_config_name=$Aria2_domain
-            info_normal "server {
-    location $Aria2_path {
-        proxy_pass http://localhost:6800/jsonrpc;
-        proxy_redirect off;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header Host \$host;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection \"upgrade\";
-    }
-}" >> /etc/nginx/sites-available/"$Aria2_nginx_config_name"
-            return
-        fi
-    fi
     info_lemon "You need append the DNS record first!"
     while true
     do
@@ -312,21 +278,21 @@ WantedBy=default.target" >> /etc/systemd/system/aria2.service
         read -r Aria2_domain
         if [ "$Aria2_domain" = "" ];
         then
-            info_normal "domain is empty ,do you want to use ip directly?(y/N)"
-            info_lemon "Not recomment use this on server."
+            info_lemon "Domain is empty, use ip directly is NOT recommend!"
+            read -p " Continue? (y/N)" -r answer
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 #use ip加入duim.json
                 Aria2_domain=_
-	        fi
+            fi
         fi
     info_normal "Your domain is: $Aria2_domain"
     info_normal "Is That correct? (y/N)"
     read -r answer
     if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
-    Aria2_nginx_config_name=$Aria2_domain
+        Aria2_nginx_config_name=$Aria2_domain
     then break;
-	fi
+    fi
     done
     touch /etc/nginx/sites-available/"$Aria2_nginx_config_name"
     #aria2 PATH 加入 duim.json
@@ -372,18 +338,7 @@ install_filebrowser()
     "root": "/home/vince/aria/download"
 }' >> /usr/local/etc/filebrowser/config.json
     touch /etc/systemd/system/filebrowser.service
-    info_normal "[Unit]
-Description=Filebrowser Daemon
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/filebrowser -c /usr/local/etc/filebrowser/config.json
-ExecStop=/bin/killall filebrowser
-PrivateTmp=true
-
-[Install]
-WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
+    gen_daemon_service "filebrowser" "/usr/local/bin/filebrowser -c /usr/local/etc/filebrowser/config.json"
     systemctl daemon-reload
     systemctl enable filebrowser --now
     domain_detect
@@ -416,7 +371,6 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
                 Filebrowser_domain=_
-                #use ip加入duim.json
             fi
         fi
         info_normal "Your domain is: $Filebrowser_domain"
@@ -426,7 +380,7 @@ WantedBy=multi-user.target" >> /etc/systemd/system/filebrowser.service
         then
             Filebrowser_nginx_config_name=$Filebrowser_domain
             break;
-	    fi
+        fi
     done
     touch /etc/nginx/sites-available/"$Filebrowser_nginx_config_name"
     info_normal "Input the Nginx port, such as 80, this is usefull if you use single ip"
@@ -492,14 +446,14 @@ install_ariang()
                 #use ip加入duim.json
                 Ariang_domain=_
                 break;
-	        fi
+            fi
         fi
         info_normal "Your domain is: $Ariang_domain"
         info_normal "Is That correct? (y/N)"
         read -r answer
         if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
         then break;
-	    fi
+        fi
     done
     touch /etc/nginx/sites-available/"$Ariang_nginx_config_name"
     info_normal "Input the Nginx port, such as 80, this is usefull if you use single ip"
@@ -584,44 +538,44 @@ get_ssl_dns()
     info_green "Use DNS challenge"
 }
 
-#####################
-#      Modules      #
-#####################
+#######################
+#       Modules       #
+#######################
 command_check()
 {
-    ! command -v "$1" &> /dev/null
-}
-command_check_install()
-{
-    #$2 is after install hook
-    if ! command -v "$1" &> /dev/null
-    then
-        printf "%b" "$3"
-        apt install "$1"
-        $2
-    fi
+    local missing=0
+    for cmd;do
+        if ! command -v "$cmd" &> /dev/null;
+        then
+            info_red "$cmd not installed"
+            missing=1
+        fi
+    done
+    if [[ "missing" -eq 1 ]];
+    then exit 1 ; fi
+    info_magenta "Exit!" && exit 0
 }
 
 chioce_default_yes()
 {
     read -r answer
-	if [[ "$answer" = "n" ]] || [[ "$answer" =  "no" ]] || [[ "$answer" = "NO" ]] || [[ "$answer" = "N" ]];
-	then
+    if [[ "$answer" = "n" ]] || [[ "$answer" =  "no" ]] || [[ "$answer" = "NO" ]] || [[ "$answer" = "N" ]];
+    then
         info_magenta "Exit!" && exit 0
     else
         return
-	fi
+    fi
 }
 
 chioce_default_no()
 {
-    read -r  answer
+    read -r answer
     if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
     then 
         return
     else
         info_magenta "Exit!" && exit 0
-	fi
+    fi
 }
 
 color_print()
@@ -653,9 +607,51 @@ color_print()
     info_reverse() { printf "%b\n" "${reverse} $*${normal}"; }
     info_underline() { printf "%b\n" "${underline} $*${normal}"; }
 }
-#####################
-#    Modules_END    #
-#####################
+
+gen_daemon_service()
+{
+    cat > /etc/systemd/system/"$1".service <<EOF
+[Unit]
+Description=$1 daemon
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=$2
+
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target"
+EOF
+}
+
+gen_nginx_config()
+{
+    cat > /etc/nginx/sites-avaliable/"$1" <<EOF
+server {
+    listen $1;
+    listen [::]: $3;
+    server_name $4;
+
+    location $5 {
+        proxy_pass$6;
+        proxy_redirect off;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \"upgrade\";
+    }
+}
+EOF
+}
+#######################
+#     Modules_END     #
+#######################
+
+
 color_print
 author
 check_relay
