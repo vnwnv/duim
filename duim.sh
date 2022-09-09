@@ -253,23 +253,17 @@ menu_extend_11()
 Install_aria2()
 {
     Aria2_config_url="https://raw.githubusercontent.com/P3TERX/aria2.conf/master/aria2.conf"
-    Aria2_nginx_config_name=aria2
+    Aria2_nginx_config_name="aria2"
+    Aria2_listen_address="http://localhost:6800/jsonrpc"
+    #install and enable
     info_green "Installing Aria2"
     apt install -y aria2
     info_green "Downloading the best Aria2 config"
     mkdir /etc/aria2
     curl -L ${Aria2_config_url} -O /etc/aria2/aria2.conf
-    touch /etc/systemd/system/aria2.service\
     gen_daemon_service "aria2" "/usr/bin/aria2c --conf-path=/etc/aria2.conf -D"
     systemctl daemon-reload
-    systemctl enable aria2 --now
-    info_normal "Input the nginx path, such as /jsonrpc and /auth(default: /jsonrpc)"
-    info_normal "With default, open the aria's jsonrpc by example.com/jsonrpc"
-    read -r Aria2_path
-    if [ "$Aria2_path" = "" ];
-    then
-        Aria2_path=/jsonrpc
-    fi
+    #get domain and path
     info_lemon "You need append the DNS record first!"
     while true
     do
@@ -278,46 +272,53 @@ Install_aria2()
         read -r Aria2_domain
         if [ "$Aria2_domain" = "" ];
         then
-            info_lemon "Domain is empty, use ip directly is NOT recommend!"
-            read -p " Continue? (y/N)" -r answer
+            info_lemon "Domain is empty, use ip directly is NOT recommend!\n Continue? (y/N)"
+            read -r answer
             if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
             then
-                #use ip加入duim.json
                 Aria2_domain=_
+            else
+                continue
             fi
         fi
-    info_normal "Your domain is: $Aria2_domain"
-    info_normal "Is That correct? (y/N)"
-    read -r answer
+        info_normal "Input the nginx path, such as /jsonrpc and /auth (default: /jsonrpc)"
+        info_normal "With default, open the aria's jsonrpc by example.com/jsonrpc"
+        read -r Aria2_path
+        if [ "$Aria2_path" = "" ];
+        then
+            Aria2_path=/jsonrpc
+        fi
+        info_normal "Input the Nginx port, such as 80, this is useful if you don't have a domain (default: 80)"
+        info_normal "This port will proxy the Aria2"
+        read -r Aria2_port
+        if [ "$Aria2_port" = "" ];
+        then
+            Aria2_port=80
+        fi
+        info_lemon "Check your info below"
+    if [[ "$Aria2_domain" != "_" ]]
+    then
+        info_green "Your domain is: $Aria2_domain"
+    else
+        info_magenta "Domain is empy, use IP directly!!"
+    fi
+        info_green "Reserve proxy port is: $Aria2_port"
+        info_green "Aria2 path is: $Aria2_path"
+        info_lemon "Are they correct? (y/N)"
+        read -r answer
     if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
-        Aria2_nginx_config_name=$Aria2_domain
-    then break;
+    then
+        if [[ "$Aria2_domain" != "_" ]];
+        then
+            Aria2_nginx_config_name=$Aria2_domain
+        fi
+        break;
     fi
     done
-    touch /etc/nginx/sites-available/"$Aria2_nginx_config_name"
-    #aria2 PATH 加入 duim.json
-    info_normal "Input the Nginx port, such as 80, this is usefull if you use single ip"
-    info_normal "This port will proxy the Aria2"
-    read -r Aria2_port
-    #Aria2_port 加入 duim.json
-    info_normal "server {
-    listen $Aria2_port;
-    listen [::]:$Aria2_port;
-    index index.html;
-    server_name $Aria2_domain;
-
-    location $Aria2_path {
-        proxy_pass http://localhost:6800/jsonrpc;
-        proxy_redirect off;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header Host \$host;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection \"upgrade\";
-    }
-}" >> /etc/nginx/sites-available/"$Aria2_nginx_config_name"
+    #gen nginx config and start
+    gen_nginx_config "$Aria2_nginx_config_name" "$Aria2_port" "$Aria2_domain" "$Aria2_path" "$Aria2_listen_address"
     ln -s /etc/nginx/sites-available/"$Aria2_nginx_config_name" /etc/nginx/sites-enabled/
+    systemctl enable aria2 --now
     systemctl reload nginx
 }
 
@@ -460,7 +461,7 @@ install_ariang()
     info_normal "This port will proxy the Filebrowser (default 80)"
     read -r Filebrowser_port
     #filebowser port 加入 duim.json
-    info_normal "server {
+    info_normal "server {info_pb
         listen 80;
         listen [::]:80;
         root /var/www/ariang;
@@ -608,6 +609,15 @@ color_print()
     info_underline() { printf "%b\n" "${underline} $*${normal}"; }
 }
 
+read_used_port()
+{
+    #找到nginx文件中没有绑定server_name的 server 块所使用的端口
+    #Fuck Nginx config
+    nginx -T | grep -v '^#' | grep -P '\_' | grep -oP '.*(?=:_)' | while read -r line ; do
+        grep -oP '(?<=listen ).*(?=;)' "$line" | grep -Eo '[0-9]{1,}' 
+    done | sort --unique
+}
+
 gen_daemon_service()
 {
     cat > /etc/systemd/system/"$1".service <<EOF
@@ -630,12 +640,12 @@ gen_nginx_config()
 {
     cat > /etc/nginx/sites-avaliable/"$1" <<EOF
 server {
-    listen $1;
-    listen [::]: $3;
-    server_name $4;
+    listen $2;
+    listen [::]: $2;
+    server_name $3;
 
-    location $5 {
-        proxy_pass$6;
+    location $4 {
+        proxy_pass $5;
         proxy_redirect off;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
