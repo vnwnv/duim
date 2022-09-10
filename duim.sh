@@ -10,6 +10,7 @@ export PATH
 Script_version="0.0.1";
 Script_config_folder="/usr/local/etc/duimscript";
 Script_db="/usr/local/etc/duimscript/data.json";
+Nginx_use_ip_filename="download.use.ip"
 
 ##TODO:
 #path冲突检测
@@ -252,15 +253,26 @@ menu_extend_11()
 
 Install_aria2()
 {
+    #check installed
+    if command -v aria2 &> /dev/null;
+    then
+        info_magenta "Aria2 config file detected! do not install again!"
+        info_normal "Continue? (y/N)"
+        chioce_default_no
+    fi
+    #default
     Aria2_config_url="https://raw.githubusercontent.com/P3TERX/aria2.conf/master/aria2.conf"
-    Aria2_nginx_config_name="aria2"
+    Aria2_nginx_config_name=$Nginx_use_ip_filename
     Aria2_listen_address="http://localhost:6800/jsonrpc"
-    #install and enable
+    Aria2_port=80
+    Aria2_path=/jsonrpc
+    Aria2_domain=_
+    #install
     info_green "Installing Aria2"
     apt install -y aria2
     info_green "Downloading the best Aria2 config"
     mkdir /etc/aria2
-    curl -L $Aria2_config_url -O /etc/aria2/aria2.conf
+    curl -L $Aria2_config_url -o /etc/aria2/aria2.conf
     gen_daemon_service "aria2" "/usr/bin/aria2c --conf-path=/etc/aria2.conf -D"
     systemctl daemon-reload
     #get domain and path
@@ -274,27 +286,19 @@ Install_aria2()
         then
             info_lemon "Domain is empty, use ip directly is NOT recommend!\n Continue? (y/N)"
             read -r answer
-            if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
+            #echo ${answer:0:1}| tr '[:upper:]' '[:lower:]'
+            #[[ "${anwser,,}"  == @(y|yes) ]]
+            if ! [[ $answer = @(Y|y|YES|yes) ]];
             then
-                Aria2_domain=_
-            else
                 continue
             fi
         fi
         info_normal "Input the nginx path, such as /jsonrpc and /auth (default: /jsonrpc)"
         info_normal "With default, open the aria's jsonrpc by example.com/jsonrpc"
         read -r Aria2_path
-        if ! [[ "$Aria2_path" ]];
-        then
-            Aria2_path=/jsonrpc
-        fi
         info_normal "Input the Nginx port, such as 80, this is useful if you don't have a domain (default: 80)"
-        info_normal "This port will proxy the Aria2"
+        info_normal "With default, open the aria's jsonrpc by example.com:80/jsonrpc"
         read -r Aria2_port
-        if ! [[ "$Aria2_port" ]];
-        then
-            Aria2_port=80
-        fi
         info_lemon "Check your info below"
     if [[ "$Aria2_domain" != "_" ]];
     then
@@ -306,7 +310,7 @@ Install_aria2()
         info_green "Aria2 path is: $Aria2_path"
         info_lemon "Are they correct? (y/N)"
         read -r answer
-    if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
+    if [[ $answer = @(Y|y|YES|yes) ]];
     then
         if [[ "$Aria2_domain" != "_" ]];
         then
@@ -316,7 +320,14 @@ Install_aria2()
     fi
     done
     #gen nginx config and start
-    gen_nginx_config "$Aria2_nginx_config_name" "$Aria2_port" "$Aria2_domain" "$Aria2_path" "$Aria2_listen_address"
+    if [ ! -d "$Nginx_use_ip_filename" ];
+    then
+        gen_nginx_config "$Aria2_nginx_config_name" "$Aria2_port" "$Aria2_domain" "$Aria2_path" "$Aria2_listen_address"
+    else
+    #need change!!!!!!!!!!!!!!!!!!!!!
+        gen_nginx_config "$Aria2_nginx_config_name" "$Aria2_port" "$Aria2_domain" "$Aria2_path" "$Aria2_listen_address"
+    fi
+    
     ln -s /etc/nginx/sites-available/"$Aria2_nginx_config_name" /etc/nginx/sites-enabled/
     systemctl enable aria2 --now
     systemctl reload nginx
@@ -324,44 +335,31 @@ Install_aria2()
 
 install_filebrowser()
 {
-    Filebrowser_nginx_config_name=filebowser
+    #check installed
+    #default
+    Filebrowser_nginx_config_name=$Nginx_use_ip_filename
+    Filebrowser_listen_address="http://localhost:8081"
+    Filebrowser_port=80
+    Filebrowser_path=/jsonrpc
+    Filebrowser_domain=_
+    #install
     info_green "Installing filebrowser"
     curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
     mkdir /usr/local/etc/filebrowser
-    touch /usr/local/etc/filebrowser/config.json
-    #修改root目录
     gen_filebrowser_config
     gen_daemon_service "filebrowser" "/usr/local/bin/filebrowser -c /usr/local/etc/filebrowser/config.json"
     systemctl daemon-reload
     #get domain and path
-    
-    if [[ "$Aria2_domain" != "null" ]] || [[ "$Filebrowser_domain" != "null" ]] || [[ "$Ariang_domain" != "null" ]];
-    then
-        read -p "Detected domain, use the same domain and port? (y/N)" -r answer
-        if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
-        then
-            Filebrowser_domain=$(domain_choose)
-            Filebrowser_nginx_config_name=Filebrowser_domain
-            info_normal "  location / {
-        proxy_pass  http://127.0.0.1:8081;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    }" >> /etc/nginx/sites-available/"$Filebrowser_nginx_config_name"
-            systemctl reload nginx
-            return
-        fi
-    fi
     info_lemon "You need append the DNS record first!"
     while true
     do
         info_normal "Input the filebrowser domain, such as download.example.com"
         info_normal "If you want to use ip Press Enter"
         read -r Filebrowser_domain
-        if [ "$Filebrowser_domain" = "" ];
+        if ! [[ "$Filebrowser_domain" ]];
         then
-            info_lemon "Domain is empty, do you want to use ip directly? (Not recomment) (y/N)"
-            if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
+            info_lemon "Domain is empty, use ip directly is NOT recommend!\n Continue? (y/N)"
+            if [[ $answer = @(Y|y|YES|yes) ]];
             then
                 Filebrowser_domain=_
             fi
@@ -369,7 +367,7 @@ install_filebrowser()
         info_normal "Your domain is: $Filebrowser_domain"
         info_normal "Is That correct? (y/N)"
         read -r answer
-        if [[ "$answer" = "y" ]] || [[ "$answer" =  "yes" ]] || [[ "$answer" = "YES" ]] || [[ "$answer" = "Y" ]] || [[ "$answer" = "Yes" ]];
+        if [[ $answer = @(Y|y|YES|yes) ]];
         then
             Filebrowser_nginx_config_name=$Filebrowser_domain
             break;
@@ -380,6 +378,7 @@ install_filebrowser()
     info_normal "This port will proxy the Filebrowser (default 80)"
     read -r Filebrowser_port
     #filebowser port 加入 duim.json
+    gen_nginx_config "$Filebrowser_nginx_config_name" "$Filebrowser_port" "$Filebrowser_domain" "$Filebrowser_path" "$Filebrowser_listen_address"
     info_normal "server {
     listen $Filebrowser_port;
     listen [::]:$Filebrowser_port;
@@ -609,6 +608,11 @@ read_used_port()
     nginx -T | grep -v '^#' | grep -P '\_' | grep -oP '.*(?=:_)' | while read -r line ; do
         grep -oP '(?<=listen ).*(?=;)' "$line" | grep -Eo '[0-9]{1,}' 
     done | sort --unique
+}
+
+read_used_port()
+{
+    crossplane parse
 }
 
 #######################
