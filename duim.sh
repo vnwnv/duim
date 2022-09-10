@@ -61,7 +61,7 @@ check_relay()
     info_green "Account check passed!\U1F389"
     info_green "Start check relay"
     apt update
-    command_check jq curl unzip nginx
+    command_check jq curl unzip nginx crossplane
     rm -f /etc/nginx/sites-enabled/default
     if [ ! -d "$Script_config_folder" ];
     then
@@ -260,7 +260,7 @@ Install_aria2()
     apt install -y aria2
     info_green "Downloading the best Aria2 config"
     mkdir /etc/aria2
-    curl -L ${Aria2_config_url} -O /etc/aria2/aria2.conf
+    curl -L $Aria2_config_url -O /etc/aria2/aria2.conf
     gen_daemon_service "aria2" "/usr/bin/aria2c --conf-path=/etc/aria2.conf -D"
     systemctl daemon-reload
     #get domain and path
@@ -270,7 +270,7 @@ Install_aria2()
         info_normal "Input the aria2 domain, such as download.example.com"
         info_normal "If you want to use ip Press Enter"
         read -r Aria2_domain
-        if [ "$Aria2_domain" = "" ];
+        if ! [[ "$Aria2_domain" ]];
         then
             info_lemon "Domain is empty, use ip directly is NOT recommend!\n Continue? (y/N)"
             read -r answer
@@ -284,19 +284,19 @@ Install_aria2()
         info_normal "Input the nginx path, such as /jsonrpc and /auth (default: /jsonrpc)"
         info_normal "With default, open the aria's jsonrpc by example.com/jsonrpc"
         read -r Aria2_path
-        if [ "$Aria2_path" = "" ];
+        if ! [[ "$Aria2_path" ]];
         then
             Aria2_path=/jsonrpc
         fi
         info_normal "Input the Nginx port, such as 80, this is useful if you don't have a domain (default: 80)"
         info_normal "This port will proxy the Aria2"
         read -r Aria2_port
-        if [ "$Aria2_port" = "" ];
+        if ! [[ "$Aria2_port" ]];
         then
             Aria2_port=80
         fi
         info_lemon "Check your info below"
-    if [[ "$Aria2_domain" != "_" ]]
+    if [[ "$Aria2_domain" != "_" ]];
     then
         info_green "Your domain is: $Aria2_domain"
     else
@@ -330,19 +330,11 @@ install_filebrowser()
     mkdir /usr/local/etc/filebrowser
     touch /usr/local/etc/filebrowser/config.json
     #修改root目录
-    info_normal '{
-    "address": "127.0.0.1",
-    "port": 8081,
-    "auth.method": "noauth",
-    "baseURL": "",
-    "database": "/usr/local/etc/filebrowser/filebrowser.db",
-    "root": "/home/vince/aria/download"
-}' >> /usr/local/etc/filebrowser/config.json
-    touch /etc/systemd/system/filebrowser.service
+    gen_filebrowser_config
     gen_daemon_service "filebrowser" "/usr/local/bin/filebrowser -c /usr/local/etc/filebrowser/config.json"
     systemctl daemon-reload
-    systemctl enable filebrowser --now
-    domain_detect
+    #get domain and path
+    
     if [[ "$Aria2_domain" != "null" ]] || [[ "$Filebrowser_domain" != "null" ]] || [[ "$Ariang_domain" != "null" ]];
     then
         read -p "Detected domain, use the same domain and port? (y/N)" -r answer
@@ -399,6 +391,7 @@ install_filebrowser()
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     }
 }" >> /etc/nginx/sites-available/"$Filebrowser_nginx_config_name"
+systemctl enable filebrowser --now
 }
 
 install_ariang()
@@ -618,6 +611,10 @@ read_used_port()
     done | sort --unique
 }
 
+#######################
+#     About_config    #
+#######################
+
 gen_daemon_service()
 {
     cat > /etc/systemd/system/"$1".service <<EOF
@@ -657,12 +654,30 @@ server {
 }
 EOF
 }
+
+gen_filebrowser_config()
+{
+    cat > /usr/local/etc/filebrowser/config.json <<EOF
+{
+    "address": "127.0.0.1",
+    "port": 8081,
+    "auth.method": "noauth",
+    "baseURL": "",
+    "database": "/usr/local/etc/filebrowser/filebrowser.db",
+    "root": "/home/vince/aria/download"
+}
+EOF
+}
 #######################
 #     Modules_END     #
 #######################
 
+test()
+{
+    color_print
+    author
+    check_relay
+    menu
+}
 
-color_print
-author
-check_relay
-menu
+test
