@@ -1,5 +1,7 @@
 # DUIM Script
-Downloader and UI Install and Mangement All in One Script
+Downloader and UI Install and Mangement All in One Bash Script!
+
+~~Why not Python? idn~~
 
 ## Status
 In development
