@@ -11,6 +11,7 @@ Script_version="0.0.1";
 Script_config_folder="/usr/local/etc/duimscript";
 Script_db="/usr/local/etc/duimscript/data.json";
 Nginx_use_ip_filename="download.use.ip"
+IP_install=true
 
 ##TODO:
 #path冲突检测
@@ -47,13 +48,13 @@ check_relay()
     info_magenta "USE \"sudo\" NOT USE ROOT DIRECTLY!\n"
     info_lemon "I'm sure to continue(y/N)"
     chioce_default_no
-    if [ "$EUID" -ne 0 ]
+    if [[ "$EUID" -ne 0 ]];
     then
         #info_red "Please use sudo!"
         info_red "You didn't read the information above!"
         exit 1
     fi
-    if [[ $EUID = "$UID" && "$SUDO_USER" = "" ]]
+    if [[ $EUID = "$UID" && "$SUDO_USER" = "" ]];
     then
         #info_red "You shouldn't use root directly!"
         info_red "You didn't read the information above!"
@@ -64,7 +65,7 @@ check_relay()
     apt update
     command_check jq curl unzip nginx crossplane
     rm -f /etc/nginx/sites-enabled/default
-    if [ ! -d "$Script_config_folder" ];
+    if [[ ! -d "$Script_config_folder" ]];
     then
         mkdir $Script_config_folder
         touch $Script_db
@@ -81,6 +82,15 @@ check_relay()
             /root/.acme.sh/acme.sh --upgrade --auto-upgrade
         fi
     fi
+    read -p "$(info_green "Do you have a domain (y/N)")" -r answer
+    if [[ $answer = @(Y|y|YES|yes) ]];
+    then
+        IP_install=false
+    else
+        info_magenta "Use IP directly is NOT RECOMMEND!\n Continue? (y/N)"
+        chioce_default_no
+    fi
+
 }
 
 menu()
@@ -254,7 +264,7 @@ menu_extend_11()
 Install_aria2()
 {
     #check installed
-    if command -v aria2 &> /dev/null;
+    if [[ ! -d "/etc/aria2/aria2.conf" ]];
     then
         info_magenta "Aria2 config file detected! do not install again!"
         info_normal "Continue? (y/N)"
@@ -279,53 +289,48 @@ Install_aria2()
     info_lemon "You need append the DNS record first!"
     while true
     do
-        info_normal "Input the aria2 domain, such as download.example.com"
-        info_normal "If you want to use ip Press Enter"
-        read -r Aria2_domain
-        if ! [[ "$Aria2_domain" ]];
+        if [[ "$IP_install" = false ]];
         then
-            info_lemon "Domain is empty, use ip directly is NOT recommend!\n Continue? (y/N)"
-            read -r answer
-            #echo ${answer:0:1}| tr '[:upper:]' '[:lower:]'
-            #[[ "${anwser,,}"  == @(y|yes) ]]
-            if ! [[ $answer = @(Y|y|YES|yes) ]];
-            then
-                continue
-            fi
+            info_normal "Input the aria2 domain, such as download.example.com"
+            read -r Aria2_domain
         fi
-        info_normal "Input the nginx path, such as /jsonrpc and /auth (default: /jsonrpc)"
-        info_normal "With default, open the aria's jsonrpc by example.com/jsonrpc"
-        read -r Aria2_path
         info_normal "Input the Nginx port, such as 80, this is useful if you don't have a domain (default: 80)"
         info_normal "With default, open the aria's jsonrpc by example.com:80/jsonrpc"
         read -r Aria2_port
+        info_normal "Input the nginx path, such as /jsonrpc and /auth (default: /jsonrpc)"
+        info_normal "With default, open the aria's jsonrpc by example.com/jsonrpc"
+        read -r Aria2_path
         info_lemon "Check your info below"
-    if [[ "$Aria2_domain" != "_" ]];
-    then
-        info_green "Your domain is: $Aria2_domain"
-    else
-        info_magenta "Domain is empy, use IP directly!!"
-    fi
+        if [[ "$IP_install" = false ]];
+        then
+            info_green "Your domain is: $Aria2_domain"
+        else
+            info_magenta "Domain is empy, use IP directly!!"
+        fi
         info_green "Reserve proxy port is: $Aria2_port"
         info_green "Aria2 path is: $Aria2_path"
         info_lemon "Are they correct? (y/N)"
         read -r answer
-    if [[ $answer = @(Y|y|YES|yes) ]];
-    then
-        if [[ "$Aria2_domain" != "_" ]];
+        if [[ $answer = @(Y|y|YES|yes) ]];
         then
-            Aria2_nginx_config_name=$Aria2_domain
+            if [[ "$Aria2_domain" != "_" ]];
+            then
+                Aria2_nginx_config_name=$Aria2_domain
+            fi
+            break;
         fi
-        break;
-    fi
     done
     #gen nginx config and start
-    if [ ! -d "$Nginx_use_ip_filename" ];
+    if [ "$IP_install" = false ];
     then
         gen_nginx_config "$Aria2_nginx_config_name" "$Aria2_port" "$Aria2_domain" "$Aria2_path" "$Aria2_listen_address"
     else
-    #need change!!!!!!!!!!!!!!!!!!!!!
-        gen_nginx_config "$Aria2_nginx_config_name" "$Aria2_port" "$Aria2_domain" "$Aria2_path" "$Aria2_listen_address"
+        if [[ ! -d $Aria2_nginx_config_name ]];
+        then
+            gen_nginx_config "$Aria2_nginx_config_name" "$Aria2_port" "$Aria2_domain" "$Aria2_path" "$Aria2_listen_address"
+        else
+            
+        fi
     fi
     
     ln -s /etc/nginx/sites-available/"$Aria2_nginx_config_name" /etc/nginx/sites-enabled/
@@ -605,9 +610,10 @@ read_used_port()
 {
     #找到nginx文件中没有绑定server_name的 server 块所使用的端口
     #Fuck Nginx config
-    nginx -T | grep -v '^#' | grep -P '\_' | grep -oP '.*(?=:_)' | while read -r line ; do
-        grep -oP '(?<=listen ).*(?=;)' "$line" | grep -Eo '[0-9]{1,}' 
-    done | sort --unique
+    grep -v '^#' /etc/nginx/sites-available/$Nginx_use_ip_filename | grep -oP '(?<=listen ).*(?=;)' | grep -Eo '[0-9]{1,}' | sort --unique | while read -r used_port ; do
+        if [["$used_port" = $1 ]]; then
+        fi
+    done
 }
 
 read_used_port()
