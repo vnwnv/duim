@@ -45,8 +45,8 @@ check_relay()
     info_green "Recommend run this script in terminal multiplexer like screen and tmux"
     info_lemon "This script need a fresh system!\n"
     info_magenta "DO NOT RUN ON PROCTION ENVIRONMENT!"
-    info_magenta "USE \"sudo\" NOT USE ROOT DIRECTLY!\n"
-    info_lemon "I'm sure to continue(y/N)"
+    info_magenta "USE ${red}sudo${normal} NOT USE ROOT DIRECTLY!\n"
+    info_lemon "I'm sure to continue (y/N)"
     chioce_default_no
     if [[ "$EUID" -ne 0 ]];
     then
@@ -349,7 +349,7 @@ install_filebrowser()
     Filebrowser_domain=_
     #install
     info_green "Installing filebrowser"
-    curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash || { info_red "installed failed"; exit }
     mkdir /usr/local/etc/filebrowser
     gen_filebrowser_config
     gen_daemon_service "filebrowser" "/usr/local/bin/filebrowser -c /usr/local/etc/filebrowser/config.json"
@@ -610,8 +610,10 @@ read_used_port()
 {
     #找到nginx文件中没有绑定server_name的 server 块所使用的端口
     #Fuck Nginx config
-    grep -v '^#' /etc/nginx/sites-available/$Nginx_use_ip_filename | grep -oP '(?<=listen ).*(?=;)' | grep -Eo '[0-9]{1,}' | sort --unique | while read -r used_port ; do
-        if [["$used_port" = $1 ]]; then
+    grep -v '^#' /etc/nginx/sites-available/$Nginx_use_ip_filename | grep -oP '(?<=listen ).*(?=;)' | grep -Eo '[0-9]{1,}' | sort --unique | while read -r _used_port ; do
+        if [["$_used_port" == $1 ]]; then
+            info_green "Detected same port! Try to use different path."
+            return
         fi
     done
 }
@@ -663,6 +665,33 @@ server {
     }
 }
 EOF
+}
+
+gen_nginx_config_same_port()
+{
+    sed "/server_name _;/a \
+        location $1 { \
+        proxy_pass $2; \
+        proxy_redirect off; \
+        proxy_set_header X-Real-IP \$remote_addr; \
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
+        proxy_set_header Host \$host; \
+        proxy_http_version 1.1; \
+        proxy_set_header Upgrade \$http_upgrade; \
+        proxy_set_header Connection \"upgrade\";" "./default"
+
+
+    echo_config () {
+        echo "location $1 {
+        proxy_pass $2;
+        proxy_redirect off;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header Host \$host;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \"upgrade\";
+    }"
 }
 
 gen_filebrowser_config()
