@@ -2,11 +2,6 @@
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin:/root/.acme.sh
 export PATH
 
-#Red="\\033[31m";
-#Green="\\033[32m";
-#Yellow="\\033[33m";
-#End_color="\\033[0m";
-
 Script_version="0.0.1";
 Script_config_folder="/usr/local/etc/duimscript";
 Script_db="/usr/local/etc/duimscript/data.json";
@@ -63,7 +58,7 @@ check_relay()
     info_green "Account check passed!\U1F389"
     info_green "Start check relay"
     apt update
-    command_check jq curl unzip nginx crossplane
+    command_check jq curl unzip nginx
     rm -f /etc/nginx/sites-enabled/default
     if [[ ! -d "$Script_config_folder" ]];
     then
@@ -608,19 +603,12 @@ color_print()
 
 read_used_port()
 {
-    #找到nginx文件中没有绑定server_name的 server 块所使用的端口
-    #Fuck Nginx config
     grep -v '^#' /etc/nginx/sites-available/$Nginx_use_ip_filename | grep -oP '(?<=listen ).*(?=;)' | grep -Eo '[0-9]{1,}' | sort --unique | while read -r _used_port ; do
         if [["$_used_port" == $1 ]]; then
             info_green "Detected same port! Try to use different path."
             return
         fi
     done
-}
-
-read_used_port()
-{
-    crossplane parse
 }
 
 #######################
@@ -679,19 +667,6 @@ gen_nginx_config_same_port()
         proxy_http_version 1.1; \
         proxy_set_header Upgrade \$http_upgrade; \
         proxy_set_header Connection \"upgrade\";" "./default"
-
-
-    echo_config () {
-        echo "location $1 {
-        proxy_pass $2;
-        proxy_redirect off;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header Host \$host;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection \"upgrade\";
-    }"
 }
 
 gen_filebrowser_config()
